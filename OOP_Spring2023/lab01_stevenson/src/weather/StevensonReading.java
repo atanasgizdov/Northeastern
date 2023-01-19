@@ -1,157 +1,166 @@
 package weather;
 
-import weather.WeatherReading;
 import java.util.Objects;
+import weather.WeatherReading;
+
 
 
 /**
  * Readings from a weather station represent:
- *  the air temperature in Celsius
- *  the dew point temperature in Celsius which cannot be greater than the air temperature
- *  the non-negative wind speed in miles per hour
- *  the non-negative total rain received in the last 24 hours in millimeters (where millimeters is the smallest unit the total rain is measured in
+ *  the air temperature in Celsius.
+ *  the dew point temperature in Celsius which cannot be greater than the air temperature.
+ *  the non-negative wind speed in miles per hour.
+ *  the non-negative total rain received in the last 24 hours in millimeters.
+ *  The class also calculates Wind Chill, relative humidity and the heat index
  */
 public final class StevensonReading implements WeatherReading {
-  private final double air_temp_celcius;
-  private final double dew_point_celcius;
-  private final double wind_speed_mph;
-  private final double total_rain_received_24h_mm;
-  private double relative_humidity = 0;
-  private double heat_index = 0;
-  private double wind_chill = 0;
+  private final double airTempCelcius;
+  private final double dewPointCelcius;
+  private final double windSpeedMph;
+  private final double totalRainReceived;
+  private double relativeHumidity = 0;
+  private double headIndex = 0;
+  private double windChill = 0;
 
   /**
-   * Constructs a weather reading from a station
+   * Constructs a weather reading from a station.
    *
-   * @param air_temp_celcius the air temperature in Celsius
-   * @param dew_point_celcius the dew point temperature in Celsius
-   * @param wind_speed_mph the non-negative wind speed in miles per hour
-   * @param total_rain_received_24h_mm the non-negative total rain received in the last 24 hours in millimeters
-   * @throws IllegalArgumentException if any argument is negative or greater than it should be
+   * @param airTempCelcius the air temperature in Celsius.
+   * @param dewPointCelcius the dew point temperature in Celsius.
+   * @param windSpeedMph the non-negative wind speed in miles per hour.
+   * @param totalRainReceived the non-negative total rain received in the last 24 hours
+   * @throws IllegalArgumentException if any argument is negative or greater than it should be.
    */
-  public StevensonReading (double air_temp_celcius, double dew_point_celcius, double wind_speed_mph, double total_rain_received_24h_mm)
+  public StevensonReading(
+      double airTempCelcius, 
+      double dewPointCelcius, 
+      double windSpeedMph, 
+      double totalRainReceived)
       
       throws IllegalArgumentException {
     
-    if ((wind_speed_mph < 0) || (total_rain_received_24h_mm < 0)) {
+    if ((windSpeedMph < 0) || (totalRainReceived < 0)) {
       throw new IllegalArgumentException(
           "Negative durations are not supported");
-    }
-    
-    else if ((dew_point_celcius > air_temp_celcius)) {
+   
+    } else if ((dewPointCelcius > airTempCelcius)) {
       throw new IllegalArgumentException(
           "The Dew point cannot be larger than the Air temp");
-      }    
+    }
     
-    /**
-     * Initialize Constructor variables
-     */
-    this.air_temp_celcius = air_temp_celcius;
-    this.dew_point_celcius = dew_point_celcius;
-    this.wind_speed_mph = wind_speed_mph;
-    this.total_rain_received_24h_mm = total_rain_received_24h_mm;
+    this.airTempCelcius = airTempCelcius;
+    this.dewPointCelcius = dewPointCelcius;
+    this.windSpeedMph = windSpeedMph;
+    this.totalRainReceived = totalRainReceived;
     
   }
   
   @Override
   public int getTemperature() {
-    return (int) Math.round(air_temp_celcius);
+    return (int) Math.round(airTempCelcius);
   }
   
   @Override
   public int getDewPoint() {
-    return (int) Math.round(dew_point_celcius);
+    return (int) Math.round(dewPointCelcius);
   }
   
   @Override
   public int getWindSpeed() {
-    return (int) Math.round(wind_speed_mph);
+    return (int) Math.round(windSpeedMph);
   }
   
   @Override
   public int getTotalRain() {
-    return (int) Math.round(total_rain_received_24h_mm);
+    return (int) Math.round(totalRainReceived);
   }
   
   /**
-   * Calculates the relative Humidity based on the formula here:
-   * https://www.wikihow.com/Calculate-Humidity#Calculating-Relative-Humidity-with-Dew-Point-and-Temperature
+   * Calculate vapor pressure.
+   * 
+   * Below is removed code, given the requirements change for checking humidity range
+   * if (relativeHumidity < 0 || relativeHumidity > 100) {
+   *   throw new IllegalArgumentException(
+   *       "Humidity cannot be higher than 100% or lower than 0%");
+   * }
+   * 
    */
   
   @Override
   public int getRelativeHumidity() {
     
-    /**
-     * Calculate vapor pressure
-     * 
-     */
+    double saturatedVaporPressure = 
+        6.11 * 10.00 * ((7.5 * this.airTempCelcius) / (237.3 + this.airTempCelcius));
+    double actualVaporPressure = 
+        6.11 * 10.00 * ((7.5 * this.dewPointCelcius) / (237.3 + this.dewPointCelcius));
     
-    double saturated_vapor_pressure = 6.11 * Math.pow(10.00, (7.5 * this.air_temp_celcius) / (237.3 + this.air_temp_celcius));
-    double actual_vapor_pressure = 6.11 * Math.pow(10.00, (7.5 * this.dew_point_celcius) / (237.3 + this.dew_point_celcius));
-    
-    relative_humidity = (actual_vapor_pressure/saturated_vapor_pressure) * 100;
-    
-    if (relative_humidity < 0 || relative_humidity > 100) {
-      throw new IllegalArgumentException(
-          "Humidity cannot be higher than 100% or lower than 0%");
-    }
+    relativeHumidity = (actualVaporPressure / saturatedVaporPressure) * 100;
 
     
-    return (int) relative_humidity;
+    return (int) Math.round(relativeHumidity);
   }
   
   /**
-   * Calculates the Heat Index based on the formula provided in Lab 1
+   * Calculates the Heat Index based on the formula provided in Lab 1.
    * 
    */
   @Override
   public int getHeatIndex() {
     
-    heat_index = -8.78469475556 + 1.61139411 * this.air_temp_celcius + 2.33854883889 * getRelativeHumidity() + -0.14611605 * this.air_temp_celcius * getRelativeHumidity()
-        + -0.012308094 * (Math.pow(this.air_temp_celcius, 2)) + -0.0164248277778 * (Math.pow(getRelativeHumidity(), 2))
-        + 0.002211732 * Math.pow(this.air_temp_celcius, 2) * getRelativeHumidity() + 0.00072546 * this.air_temp_celcius * Math.pow(getRelativeHumidity(), 2)
-        + -0.000003582 * Math.pow(this.air_temp_celcius, 2) * Math.pow(getRelativeHumidity(), 2);
+    headIndex = 
+        -8.78469475556 + 1.61139411 * this.airTempCelcius 
+        + 2.33854883889 * getRelativeHumidity() + -0.14611605 
+        * this.airTempCelcius * getRelativeHumidity()
+        + -0.012308094 * (Math.pow(this.airTempCelcius, 
+            2)) + -0.0164248277778 * (Math.pow(getRelativeHumidity(), 2))
+        + 0.002211732 * Math.pow(this.airTempCelcius, 2) * getRelativeHumidity() 
+        + 0.00072546 * this.airTempCelcius * Math.pow(getRelativeHumidity(), 2)
+        + -0.000003582 * Math.pow(this.airTempCelcius, 2) * Math.pow(getRelativeHumidity(), 2);
 
     
-    return (int) heat_index;
+    return (int) headIndex;
   }
   
   
   /**
-   * Calculates the Wind Chill based on the formula provided in Lab 1
+   * Calculates the Wind Chill based on the formula provided in Lab 1.
    * 
    */
   
   @Override
   public int getWindChill() {
     
-    wind_chill = 35.74 + 0.6215 * (Celcius_to_Farenheit(this.air_temp_celcius)) - 35.75 * (Math.pow(this.wind_speed_mph, 0.16))
-        + 0.4275 * (Celcius_to_Farenheit(this.air_temp_celcius)) * (Math.pow(this.wind_speed_mph, 0.16));
+    windChill = 
+        35.74 
+        + 0.6215 * celciusToFarenheit(this.airTempCelcius) 
+        - 35.75 * Math.pow(this.windSpeedMph, 0.16)
+        + 0.4275 * celciusToFarenheit(this.airTempCelcius) * Math.pow(this.windSpeedMph, 0.16);
 
-    Math.round(wind_chill);
+    windChill = (windChill - 32) * (5.0 / 9.0);
     
-    return (int) wind_chill;
+    return (int) Math.round(windChill);
   }
   
   
   /**
-   * Converts Celcius temps to Farenheit
-   * 
+   * Converts Celcius temps to Farenheit.
+   * @param temperature temp in C
+   * @return Farenheit Temperature
    */
-  private static int Celcius_to_Farenheit (double temperature) {
+  private static double celciusToFarenheit(double temperature) {
     
-    int farenheint_temperature = (int) Math.round ((temperature * 1.8) + 32);
+    double farenheitTemperature = temperature * 1.8 + 32;
     
-    return farenheint_temperature;
+    return farenheitTemperature;
   }
 
   
   @Override
   public String toString() {
-    return "Reading: " + "T = " + (int) Math.round(this.air_temp_celcius)
-            + ", D = " + (int) Math.round(this.dew_point_celcius)
-            + ", v = " + (int) Math.round(this.wind_speed_mph)
-            + ", rain = " + (int) Math.round(this.total_rain_received_24h_mm);
+    return "Reading: " + "T = " + (int) Math.round(this.airTempCelcius)
+            + ", D = " + (int) Math.round(this.dewPointCelcius)
+            + ", v = " + (int) Math.round(this.windSpeedMph)
+            + ", rain = " + (int) Math.round(this.totalRainReceived);
   }
 
   @Override
@@ -164,14 +173,20 @@ public final class StevensonReading implements WeatherReading {
     }
     StevensonReading that = (StevensonReading) o;
     
-    return Double.compare(that.air_temp_celcius, this.air_temp_celcius) == 0 && Double.compare(that.dew_point_celcius, this.dew_point_celcius) == 0
-            && Double.compare(that.wind_speed_mph, this.wind_speed_mph) == 0 && this.total_rain_received_24h_mm == that.total_rain_received_24h_mm;
+    return Double.compare(that.airTempCelcius, this.airTempCelcius) == 0 
+        && Double.compare(that.dewPointCelcius, this.dewPointCelcius) == 0
+        && Double.compare(that.windSpeedMph, this.windSpeedMph) == 0 
+        && this.totalRainReceived == that.totalRainReceived;
   }
 
 
   @Override
   public int hashCode() {
-    return Objects.hash(this.air_temp_celcius, this.dew_point_celcius, this.wind_speed_mph, this.total_rain_received_24h_mm);
+    return Objects.hash(
+        this.airTempCelcius, 
+        this.dewPointCelcius, 
+        this.windSpeedMph, 
+        this.totalRainReceived);
   }
   
 }
